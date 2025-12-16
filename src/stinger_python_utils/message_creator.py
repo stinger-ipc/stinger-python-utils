@@ -1,15 +1,13 @@
-
 from pyqttier.message import Message
 from pydantic import BaseModel
 from typing import Union, Optional
 import uuid
 
+
 class MessageCreator:
 
     @classmethod
-    def signal_message(
-        cls, topic: str, payload: BaseModel
-    ) -> Message:
+    def signal_message(cls, topic: str, payload: BaseModel) -> Message:
         return Message(
             topic=topic,
             payload=payload.model_dump_json(by_alias=True).encode("utf-8"),
@@ -62,14 +60,19 @@ class MessageCreator:
     def response_message(
         cls,
         response_topic: str,
-        response_obj: BaseModel|str|bytes,
+        response_obj: BaseModel | str | bytes,
         return_code: int,
         correlation_id: Union[str, bytes],
     ) -> Message:
         """
         This could be used for a successful response to a request.
         """
-        payload = response_obj.model_dump_json(by_alias=True).encode("utf-8") if isinstance(response_obj, BaseModel) else response_obj
+        if isinstance(response_obj, BaseModel):
+            payload = response_obj.model_dump_json(by_alias=True).encode("utf-8")
+        elif isinstance(response_obj, str):
+            payload = response_obj.encode("utf-8")
+        else:
+            payload = response_obj
         msg_obj = Message(
             topic=response_topic,
             payload=payload,
