@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "stinger-python-utils"
+version = "0.1.1"
+description = "Common utilities for Stinger Python services."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.7"
+dependencies = [
+    "pydantic>=2.5.3",
+    "pyqttier>=0.2.0",
+]
+
+[tool.uv]
+managed = true
+
+[dependency-groups]
+dev = [
+    "black>=23.3.0",
+    "mypy>=1.4.1",
+]

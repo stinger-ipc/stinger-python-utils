@@ -1,0 +1,4 @@
+# Manage Python versions and dependencies with uv
+# https://docs.astral.sh/uv/
+
+Python = "3.7"
