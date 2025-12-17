@@ -99,6 +99,7 @@ class MessageCreator:
             payload=state_obj.model_dump_json(by_alias=True).encode("utf-8"),
             qos=1,
             retain=True,
+            content_type="application/json",
         )
         if state_version is not None:
             msg_obj.user_properties = {"PropertyVersion": str(state_version)}
