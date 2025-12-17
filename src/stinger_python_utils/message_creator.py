@@ -32,7 +32,7 @@ class MessageCreator:
         cls,
         topic: str,
         return_code: int,
-        correlation_id: Union[str, bytes],
+        correlation_id: Union[str, bytes, None] = None,
         debug_info: Optional[str] = None,
     ) -> Message:
         """
@@ -62,7 +62,7 @@ class MessageCreator:
         response_topic: str,
         response_obj: BaseModel | str | bytes,
         return_code: int,
-        correlation_id: Union[str, bytes],
+        correlation_id: Union[str, bytes, None] = None,
     ) -> Message:
         """
         This could be used for a successful response to a request.
@@ -138,7 +138,7 @@ class MessageCreator:
         property_obj: BaseModel,
         version: str,
         return_code: int,
-        correlation_id: Union[str, bytes],
+        correlation_id: Union[str, bytes, None] = None,
         debug_info: Optional[str] = None,
     ) -> Message:
         """
