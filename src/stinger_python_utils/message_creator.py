@@ -60,7 +60,7 @@ class MessageCreator:
     def response_message(
         cls,
         response_topic: str,
-        response_obj: BaseModel | str | bytes,
+        response_obj: Union[BaseModel, str, bytes],
         return_code: int,
         correlation_id: Union[str, bytes, None] = None,
     ) -> Message:
