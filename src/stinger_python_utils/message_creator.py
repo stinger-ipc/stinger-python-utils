@@ -2,6 +2,7 @@ from pyqttier.message import Message
 from pydantic import BaseModel
 from typing import Union, Optional
 import uuid
+from .return_codes import MethodReturnCode
 
 
 class MessageCreator:
@@ -31,13 +32,18 @@ class MessageCreator:
     def error_response_message(
         cls,
         topic: str,
-        return_code: int,
+        return_code: Union[int, MethodReturnCode],
         correlation_id: Union[str, bytes, None] = None,
         debug_info: Optional[str] = None,
     ) -> Message:
         """
         This could be used for a response to a request, but where there was an error fulfilling the request.
         """
+        rc = (
+            return_code.value
+            if isinstance(return_code, MethodReturnCode)
+            else return_code
+        )
         msg_obj = Message(
             topic=topic,
             payload=b"{}",
@@ -48,7 +54,7 @@ class MessageCreator:
                 if isinstance(correlation_id, str)
                 else correlation_id
             ),
-            user_properties={"ReturnCode": str(return_code)},
+            user_properties={"ReturnCode": str(rc)},
         )
         if (
             debug_info is not None and msg_obj.user_properties is not None
@@ -61,7 +67,7 @@ class MessageCreator:
         cls,
         response_topic: str,
         response_obj: Union[BaseModel, str, bytes],
-        return_code: int,
+        return_code: Union[int, MethodReturnCode],
         correlation_id: Union[str, bytes, None] = None,
     ) -> Message:
         """
@@ -73,6 +79,11 @@ class MessageCreator:
             payload = response_obj.encode("utf-8")
         else:
             payload = response_obj
+        rc = (
+            return_code.value
+            if isinstance(return_code, MethodReturnCode)
+            else return_code
+        )
         msg_obj = Message(
             topic=response_topic,
             payload=payload,
@@ -83,7 +94,7 @@ class MessageCreator:
                 if isinstance(correlation_id, str)
                 else correlation_id
             ),
-            user_properties={"ReturnCode": str(return_code)},
+            user_properties={"ReturnCode": str(rc)},
         )
         return msg_obj
 
@@ -138,13 +149,18 @@ class MessageCreator:
         response_topic: str,
         property_obj: BaseModel,
         version: str,
-        return_code: int,
+        return_code: Union[int, MethodReturnCode],
         correlation_id: Union[str, bytes, None] = None,
         debug_info: Optional[str] = None,
     ) -> Message:
         """
         Creates a message representing a response to a property update request.
         """
+        rc = (
+            return_code.value
+            if isinstance(return_code, MethodReturnCode)
+            else return_code
+        )
         msg_obj = Message(
             topic=response_topic,
             payload=property_obj.model_dump_json(by_alias=True).encode("utf-8"),
@@ -156,7 +172,7 @@ class MessageCreator:
                 else correlation_id
             ),
             user_properties={
-                "ReturnCode": str(return_code),
+                "ReturnCode": str(rc),
                 "PropertyVersion": str(version),
             },
         )
