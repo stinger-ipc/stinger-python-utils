@@ -14,6 +14,7 @@ class MessageCreator:
             payload=payload.model_dump_json(by_alias=True).encode("utf-8"),
             qos=1,
             retain=False,
+            content_type="application/json",
         )
 
     @classmethod
@@ -26,6 +27,7 @@ class MessageCreator:
             qos=1,
             retain=True,
             message_expiry_interval=expiry_seconds,
+            content_type="application/json",
         )
 
     @classmethod
@@ -55,6 +57,7 @@ class MessageCreator:
                 else correlation_id
             ),
             user_properties={"ReturnCode": str(rc)},
+            content_type="application/json",
         )
         if (
             debug_info is not None and msg_obj.user_properties is not None
@@ -95,6 +98,7 @@ class MessageCreator:
                 else correlation_id
             ),
             user_properties={"ReturnCode": str(rc)},
+            content_type="application/json",
         )
         return msg_obj
 
@@ -133,6 +137,7 @@ class MessageCreator:
             payload=property_obj.model_dump_json(by_alias=True).encode("utf-8"),
             qos=1,
             retain=False,
+            content_type="application/json",
             response_topic=response_topic,
             correlation_data=(
                 correlation_id.encode("utf-8")
@@ -166,6 +171,7 @@ class MessageCreator:
             payload=property_obj.model_dump_json(by_alias=True).encode("utf-8"),
             qos=1,
             retain=False,
+            content_type="application/json",
             correlation_data=(
                 correlation_id.encode("utf-8")
                 if isinstance(correlation_id, str)
@@ -198,6 +204,7 @@ class MessageCreator:
             qos=1,
             retain=False,
             response_topic=response_topic,
+            content_type="application/json",
             correlation_data=(
                 correlation_id.encode("utf-8")
                 if isinstance(correlation_id, str)

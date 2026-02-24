@@ -20,6 +20,7 @@ class TestSignalMessage:
         assert message.qos == 1
         assert message.retain is False
         assert b'"name":"test"' in message.payload
+        assert message.content_type == "application/json"
 
 
 class TestStatusMessage:
@@ -32,6 +33,7 @@ class TestStatusMessage:
         assert message.qos == 1
         assert message.retain is True
         assert message.message_expiry_interval == 3600
+        assert message.content_type == "application/json"
 
 
 class TestErrorResponseMessage:
@@ -48,6 +50,7 @@ class TestErrorResponseMessage:
         assert message.retain is False
         assert message.user_properties["ReturnCode"] == "500"
         assert message.correlation_data == b"abc-123"
+        assert message.content_type == "application/json"
 
     def test_error_response_with_bytes_correlation_id(self):
         """Test error response with bytes correlation ID"""
@@ -59,6 +62,7 @@ class TestErrorResponseMessage:
         
         assert message.correlation_data == b"xyz-789"
         assert message.user_properties["ReturnCode"] == "400"
+        assert message.content_type == "application/json"
 
     def test_error_response_with_debug_info(self):
         """Test error response includes debug info"""
@@ -69,6 +73,7 @@ class TestErrorResponseMessage:
         )
         
         assert message.user_properties["DebugInfo"] == "Something went wrong"
+        assert message.content_type == "application/json"
 
 
 class TestResponseMessage:
@@ -86,6 +91,7 @@ class TestResponseMessage:
         assert message.qos == 1
         assert message.user_properties["ReturnCode"] == "200"
         assert message.correlation_data == b"req-123"
+        assert message.content_type == "application/json"
 
     def test_response_message_with_string(self):
         """Test response message with string payload"""
@@ -96,6 +102,7 @@ class TestResponseMessage:
         )
         
         assert message.payload == b"success"
+        assert message.content_type == "application/json"
 
     def test_response_message_with_bytes(self):
         """Test response message with bytes payload"""
@@ -106,6 +113,7 @@ class TestResponseMessage:
         )
         
         assert message.payload == b"binary data"
+        assert message.content_type == "application/json"
 
 
 class TestPropertyStateMessage:
@@ -147,6 +155,7 @@ class TestPropertyUpdateRequestMessage:
         assert message.response_topic == "property/response"
         assert message.user_properties["PropertyVersion"] == "1.0"
         assert message.correlation_data == b"update-123"
+        assert message.content_type == "application/json"
 
 
 class TestPropertyResponseMessage:
@@ -165,6 +174,7 @@ class TestPropertyResponseMessage:
         assert message.user_properties["ReturnCode"] == "200"
         assert message.user_properties["PropertyVersion"] == "1.0"
         assert message.correlation_data == b"update-123"
+        assert message.content_type == "application/json"
 
     def test_property_response_message_with_debug_info(self):
         """Test property response message with debug info"""
@@ -178,6 +188,7 @@ class TestPropertyResponseMessage:
         )
         
         assert message.user_properties["DebugInfo"] == "Update failed"
+        assert message.content_type == "application/json"
 
 
 class TestRequestMessage:
@@ -194,6 +205,7 @@ class TestRequestMessage:
         assert message.response_topic == "response/topic"
         assert message.correlation_data is not None
         assert len(message.correlation_data) > 0
+        assert message.content_type == "application/json"
 
     def test_request_message_with_correlation_id(self):
         """Test request message with provided correlation ID"""
@@ -206,3 +218,4 @@ class TestRequestMessage:
         )
         
         assert message.correlation_data == b"req-456"
+        assert message.content_type == "application/json"
