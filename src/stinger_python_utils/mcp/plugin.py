@@ -200,7 +200,7 @@ class StingerMCPPlugin(ABC):
         and returns whatever the method returns (typically a
         ``concurrent.futures.Future``).
         """
-        method = getattr(client, method_name)
+        method = getattr(client, f"call_{method_name}")
         return method(**arguments)
 
     def serialize_property(self, prop_name: str, value: Any) -> str:
