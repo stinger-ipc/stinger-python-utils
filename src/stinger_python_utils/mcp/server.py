@@ -193,7 +193,11 @@ class StingerMCPServer:
                                 or f"Call {mdef.name} on {state.plugin_name} "
                                 f"instance {state.instance_id}"
                             ),
-                            inputSchema=mdef.arguments_schema,
+                            inputSchema=(
+                                mdef.arguments_model.model_json_schema()
+                                if mdef.arguments_model is not None
+                                else {"type": "object"}
+                            ),
                         )
                     )
 
@@ -214,8 +218,8 @@ class StingerMCPServer:
 
     def _resolve_tool(
         self, name: str
-    ) -> tuple[InstanceState, str, str] | None:
-        """Map a tool *name* → ``(state, kind, item_name)``.
+    ) -> tuple[InstanceState, str, MethodDefinition | PropertyDefinition] | None:
+        """Map a tool *name* → ``(state, kind, definition)``.
 
         *kind* is ``"method"`` or ``"property"``.  Methods are checked
         first so that a method named ``set_foo`` takes precedence over
@@ -235,7 +239,7 @@ class StingerMCPServer:
                 # Methods take priority
                 for mdef in state.plugin.get_methods():
                     if _sanitize(mdef.name) == remainder:
-                        return state, "method", mdef.name
+                        return state, "method", mdef
 
                 # Property setters: set_<prop_name>
                 if remainder.startswith("set_"):
@@ -245,7 +249,7 @@ class StingerMCPServer:
                             _sanitize(pdef.name) == prop_token
                             and not pdef.readonly
                         ):
-                            return state, "property", pdef.name
+                            return state, "property", pdef
 
         return None
 
@@ -256,23 +260,32 @@ class StingerMCPServer:
         if target is None:
             raise ValueError(f"Unknown tool: {name}")
 
-        state, kind, item_name = target
+        state, kind, defn = target
 
         if kind == "property":
             try:
-                state.plugin.write_property(state.client, item_name, arguments)
-                text = json.dumps({"status": "ok", "property": item_name})
+                state.plugin.write_property(
+                    state.client, defn.name, arguments
+                )
+                text = json.dumps({"status": "ok", "property": defn.name})
             except Exception as exc:
-                logger.exception("Error setting property %s", item_name)
+                logger.exception("Error setting property %s", defn.name)
                 text = json.dumps(
                     {"status": "error", "error": str(exc)}, default=str
                 )
             return [types.TextContent(type="text", text=text)]
 
         # kind == "method"
+        assert isinstance(defn, MethodDefinition)
         try:
+            # Load the pydantic model from the raw arguments
+            model = (
+                defn.arguments_model(**arguments)
+                if defn.arguments_model is not None
+                else None
+            )
             result = state.plugin.call_method(
-                state.client, item_name, arguments
+                state.client, defn.name, model
             )
             if isinstance(result, Future):
                 result = await _resolve_future(result)
@@ -284,7 +297,7 @@ class StingerMCPServer:
             else:
                 text = json.dumps(result, default=str)
         except Exception as exc:
-            logger.exception("Error calling method %s", item_name)
+            logger.exception("Error calling method %s", defn.name)
             text = json.dumps(
                 {"status": "error", "error": str(exc)}, default=str
             )
@@ -523,6 +536,8 @@ class StingerMCPServer:
         try:
             from mcp.server.sse import SseServerTransport
             from starlette.applications import Starlette
+            from starlette.middleware import Middleware
+            from starlette.middleware.cors import CORSMiddleware
             from starlette.requests import Request
             from starlette.routing import Mount, Route
             import uvicorn
@@ -550,8 +565,69 @@ class StingerMCPServer:
                 Route("/sse", endpoint=handle_sse),
                 Mount("/messages/", app=sse.handle_post_message),
             ],
+            middleware=[
+                Middleware(
+                    CORSMiddleware,
+                    allow_origins=["*"],
+                    allow_methods=["*"],
+                    allow_headers=["*"],
+                ),
+            ],
         )
 
         config = uvicorn.Config(app, host=host, port=port)
         server = uvicorn.Server(config)
         await server.serve()
+
+    async def run_streamable_http(
+        self, host: str = "0.0.0.0", port: int = 8000
+    ) -> None:
+        """Run the MCP server over the *Streamable HTTP* transport."""
+        try:
+            from mcp.server.streamable_http import (
+                StreamableHTTPServerTransport,
+            )
+            from starlette.applications import Starlette
+            from starlette.middleware import Middleware
+            from starlette.middleware.cors import CORSMiddleware
+            from starlette.routing import Mount
+            import uvicorn
+        except ImportError as exc:
+            raise RuntimeError(
+                "Streamable HTTP transport requires additional packages. "
+                "Install with:  pip install 'stinger-python-utils[mcp]'"
+            ) from exc
+
+        self._loop = asyncio.get_running_loop()
+        self._connection = create_mqtt_connection()
+        self._load_plugins()
+        self._start_discovery()
+
+        transport = StreamableHTTPServerTransport(
+            mcp_session_id=uuid.uuid4().hex,
+        )
+
+        async def run_transport() -> None:
+            async with transport.connect() as (read, write):
+                await self._server.run(read, write, self._init_options())
+
+        app = Starlette(
+            routes=[
+                Mount("/mcp", app=transport.handle_request),
+            ],
+            middleware=[
+                Middleware(
+                    CORSMiddleware,
+                    allow_origins=["*"],
+                    allow_methods=["*"],
+                    allow_headers=["*"],
+                ),
+            ],
+        )
+
+        config = uvicorn.Config(app, host=host, port=port)
+        server = uvicorn.Server(config)
+
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(run_transport())
+            tg.create_task(server.serve())

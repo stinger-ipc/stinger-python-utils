@@ -14,20 +14,20 @@ def main() -> None:
     )
     parser.add_argument(
         "--transport",
-        choices=["stdio", "sse"],
+        choices=["stdio", "sse", "streamable-http"],
         default="stdio",
         help="MCP transport to use (default: stdio)",
     )
     parser.add_argument(
         "--host",
         default="0.0.0.0",
-        help="Bind address for SSE transport (default: 0.0.0.0)",
+        help="Bind address for SSE/streamable-http transport (default: 0.0.0.0)",
     )
     parser.add_argument(
         "--port",
         type=int,
         default=8000,
-        help="Port for SSE transport (default: 8000)",
+        help="Port for SSE/streamable-http transport (default: 8000)",
     )
     parser.add_argument(
         "--log-level",
@@ -50,6 +50,8 @@ def main() -> None:
         asyncio.run(server.run_stdio())
     elif args.transport == "sse":
         asyncio.run(server.run_sse(host=args.host, port=args.port))
+    elif args.transport == "streamable-http":
+        asyncio.run(server.run_streamable_http(host=args.host, port=args.port))
 
 
 if __name__ == "__main__":

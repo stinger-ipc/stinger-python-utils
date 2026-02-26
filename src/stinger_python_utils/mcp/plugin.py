@@ -17,6 +17,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
 
+from pydantic import BaseModel
+
 
 # ------------------------------------------------------------------
 # Data models
@@ -66,19 +68,18 @@ class MethodDefinition:
     """Describes a callable method on a stinger-ipc client.
 
     Each method is exposed as an MCP **tool** whose ``inputSchema`` is
-    *arguments_schema*.
+    derived from *arguments_model* via ``model_json_schema()``.
 
-    *arguments_schema* must be a valid `JSON Schema`_ of type
-    ``"object"``.  The property names **must** match the keyword
-    argument names accepted by the client method.
+    *arguments_model* must be a :class:`pydantic.BaseModel` subclass.
+    When the tool is invoked, the raw JSON arguments are loaded into
+    an instance of this model and the model is passed to
+    ``call_{method_name}`` on the client.
 
-    .. _JSON Schema: https://json-schema.org/
+    If *arguments_model* is ``None`` the tool accepts no arguments.
     """
 
     name: str
-    arguments_schema: dict[str, Any] = field(
-        default_factory=lambda: {"type": "object"}
-    )
+    arguments_model: type[BaseModel] | None = None
     description: str = ""
 
 
@@ -186,22 +187,27 @@ class StingerMCPPlugin(ABC):
         Override when the property value is a composite type that must
         be reconstructed from several arguments.
         """
-        setattr(client, prop_name, arguments["value"])
+        setattr(client, prop_name, list(arguments.values())[0])
 
     def call_method(
-        self, client: Any, method_name: str, arguments: dict[str, Any]
+        self, client: Any, method_name: str, arguments: BaseModel | None
     ) -> Any:
         """Invoke *method_name* on *client* with *arguments*.
 
+        *arguments* is a validated :class:`pydantic.BaseModel` instance
+        (or ``None`` when the method takes no parameters).
+
         The default implementation calls::
 
-            getattr(client, method_name)(**arguments)
+            getattr(client, f"call_{method_name}")(arguments)
 
         and returns whatever the method returns (typically a
         ``concurrent.futures.Future``).
         """
         method = getattr(client, f"call_{method_name}")
-        return method(**arguments)
+        if arguments is None:
+            return method()
+        return method(arguments)
 
     def serialize_property(self, prop_name: str, value: Any) -> str:
         """Serialize a property *value* to a JSON string for the MCP resource.
