@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "stinger-python-utils"
-version = "0.1.8.rc1"
+version = "0.1.8rc2"
 description = "Common utilities for Stinger Python services."
 readme = "README.md"
 license = "MIT"
@@ -13,6 +13,16 @@ dependencies = [
     "pydantic>=2.5.3",
     "pyqttier>=0.2.0",
 ]
+
+[project.optional-dependencies]
+mcp = [
+    "mcp>=1.0.0",
+    "stevedore>=5.0",
+    "uvicorn>=0.20.0",
+]
+
+[project.scripts]
+stinger-mcp-server = "stinger_python_utils.mcp.__main__:main"
 
 [tool.uv]
 managed = true
