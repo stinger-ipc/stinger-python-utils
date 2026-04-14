@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        # Python 3.7 requires a completely different setup because it is very EOL.
         include:
           - python-version: "3.10"
             extras: "--all-extras"
@@ -22,9 +23,9 @@ jobs:
             extras: "--all-extras"
           - python-version: "3.14"
             extras: "--all-extras"
-          - python-version: "3.7"
-            extras: ""
           - python-version: "3.8"
+            extras: ""
+          - python-version: "3.9"
             extras: ""
     steps:
       - uses: actions/checkout@v4
@@ -34,10 +35,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install project
         run: |
-          uv sync --locked ${{ matrix.extras }} --dev
+          uv sync --locked --all-extras --dev
       - name: Run unit tests
         run: |
-          uv run ${{ matrix.extras }} pytest
+          uv run pytest
       - name: Mypy Type Check
         run: |
-          uv run --group=dev mypy --check-untyped-defs ./src/
+          uv run mypy --check-untyped-defs ./src/
