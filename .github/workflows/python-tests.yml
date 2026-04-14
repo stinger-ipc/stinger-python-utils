@@ -14,19 +14,26 @@ jobs:
         # Python 3.7 requires a completely different setup because it is very EOL.
         include:
           - python-version: "3.10"
-            extras: "--all-extras"
+            uv-sync-flags: "--all-extras"
+            mypy-flags: ""
           - python-version: "3.11"
-            extras: "--all-extras"
+            uv-sync-flags: "--all-extras"
+            mypy-flags: ""
           - python-version: "3.12"
-            extras: "--all-extras"
+            uv-sync-flags: "--all-extras"
+            mypy-flags: ""
           - python-version: "3.13"
-            extras: "--all-extras"
+            uv-sync-flags: "--all-extras"
+            mypy-flags: ""
           - python-version: "3.14"
-            extras: "--all-extras"
+            uv-sync-flags: "--all-extras"
+            mypy-flags: ""
           - python-version: "3.8"
-            extras: ""
+            uv-sync-flags: ""
+            mypy-flags: "--exclude '/mcp/'"
           - python-version: "3.9"
-            extras: ""
+            uv-sync-flags: ""
+            mypy-flags: "--exclude '/mcp/'"
     steps:
       - uses: actions/checkout@v4
       - name: Install UV
@@ -35,10 +42,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install project
         run: |
-          uv sync --locked ${{ matrix.extras }} --dev
+          uv sync --locked ${{ matrix.uv-sync-flags }} --dev
       - name: Run unit tests
         run: |
           uv run pytest
       - name: Mypy Type Check
         run: |
-          uv run mypy --check-untyped-defs ./src/
+          uv run mypy --check-untyped-defs ${{ matrix.mypy-flags }} ./src/
