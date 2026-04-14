@@ -15,7 +15,7 @@ jobs:
         include:
           - python-version: "3.10"
             uv-sync-flags: "--all-extras"
-            mypy-flags: ""
+            mypy-flags: "--exclude '/mcp/'"
           - python-version: "3.11"
             uv-sync-flags: "--all-extras"
             mypy-flags: ""
