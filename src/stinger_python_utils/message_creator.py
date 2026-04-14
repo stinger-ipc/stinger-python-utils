@@ -7,8 +7,16 @@ from .return_codes import MethodReturnCode
 
 class MessageCreator:
 
+    @staticmethod
+    def _validate_topic(topic: str, param_name: str = "topic") -> None:
+        if "+" in topic:
+            raise ValueError(
+                f"{param_name} must not contain '+', got: {topic!r}"
+            )
+
     @classmethod
     def signal_message(cls, topic: str, payload: BaseModel) -> Message:
+        cls._validate_topic(topic)
         return Message(
             topic=topic,
             payload=payload.model_dump_json(by_alias=True).encode("utf-8"),
@@ -21,6 +29,7 @@ class MessageCreator:
     def status_message(
         cls, topic, status_message: BaseModel, expiry_seconds: int
     ) -> Message:
+        cls._validate_topic(topic)
         return Message(
             topic=topic,
             payload=status_message.model_dump_json(by_alias=True).encode("utf-8"),
@@ -41,6 +50,7 @@ class MessageCreator:
         """
         This could be used for a response to a request, but where there was an error fulfilling the request.
         """
+        cls._validate_topic(topic)
         rc = (
             return_code.value
             if isinstance(return_code, MethodReturnCode)
@@ -76,6 +86,7 @@ class MessageCreator:
         """
         This could be used for a successful response to a request.
         """
+        cls._validate_topic(response_topic, "response_topic")
         if isinstance(response_obj, BaseModel):
             payload = response_obj.model_dump_json(by_alias=True).encode("utf-8")
         elif isinstance(response_obj, str):
@@ -109,6 +120,7 @@ class MessageCreator:
         """
         Creates a retained message representing the state/value of a property.
         """
+        cls._validate_topic(topic)
         msg_obj = Message(
             topic=topic,
             payload=state_obj.model_dump_json(by_alias=True).encode("utf-8"),
@@ -132,6 +144,8 @@ class MessageCreator:
         """
         Creates a message representing a request to update a property.
         """
+        cls._validate_topic(topic)
+        cls._validate_topic(response_topic, "response_topic")
         msg_obj = Message(
             topic=topic,
             payload=property_obj.model_dump_json(by_alias=True).encode("utf-8"),
@@ -161,6 +175,7 @@ class MessageCreator:
         """
         Creates a message representing a response to a property update request.
         """
+        cls._validate_topic(response_topic, "response_topic")
         rc = (
             return_code.value
             if isinstance(return_code, MethodReturnCode)
@@ -196,6 +211,8 @@ class MessageCreator:
         response_topic: str,
         correlation_id: Union[str, bytes, None] = None,
     ) -> Message:
+        cls._validate_topic(topic)
+        cls._validate_topic(response_topic, "response_topic")
         if correlation_id is None:
             correlation_id = str(uuid.uuid4())
         msg_obj = Message(
