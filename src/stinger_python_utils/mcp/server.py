@@ -377,11 +377,11 @@ class StingerMCPServer:
 
     def _load_plugins(self) -> None:
         def _on_failure(
-            _mgr: ExtensionManager, entrypoint: Any, err: Exception
+            _mgr: Any, entrypoint: Any, err: BaseException
         ) -> None:
             logger.error("Failed to load plugin %s: %s", entrypoint, err)
 
-        mgr = ExtensionManager(
+        mgr: ExtensionManager[Any] = ExtensionManager(
             namespace=self.STEVEDORE_NAMESPACE,
             invoke_on_load=True,
             on_load_failure_callback=_on_failure,
