@@ -1,4 +1,10 @@
 {
     "python-envs.defaultEnvManager": "ms-python.python:system",
-    "python-envs.pythonProjects": []
+    "python-envs.pythonProjects": [],
+    "chat.tools.terminal.autoApprove": {
+        "/^uv run mypy src/ tests/$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
 }
