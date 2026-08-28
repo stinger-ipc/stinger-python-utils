@@ -64,6 +64,49 @@ class TestSignalMessage:
 
 
 # ---------------------------------------------------------------------------
+# command_message
+# ---------------------------------------------------------------------------
+
+class TestCommandMessage:
+    def test_topic(self):
+        msg = MessageCreator.command_message(TOPIC, SIMPLE)
+        assert msg.topic == TOPIC
+
+    def test_payload_is_json(self):
+        msg = MessageCreator.command_message(TOPIC, SIMPLE)
+        assert json.loads(msg.payload) == {"name": "hello", "value": 42}
+
+    def test_payload_uses_alias(self):
+        msg = MessageCreator.command_message(TOPIC, ALIAS)
+        assert "myName" in json.loads(msg.payload)
+
+    def test_qos_defaults_to_exactly_once(self):
+        msg = MessageCreator.command_message(TOPIC, SIMPLE)
+        assert msg.qos == 2
+
+    def test_qos_override(self):
+        msg = MessageCreator.command_message(TOPIC, SIMPLE, qos=1)
+        assert msg.qos == 1
+
+    def test_not_retained(self):
+        msg = MessageCreator.command_message(TOPIC, SIMPLE)
+        assert msg.retain is False
+
+    def test_content_type(self):
+        msg = MessageCreator.command_message(TOPIC, SIMPLE)
+        assert msg.content_type == "application/json"
+
+    def test_fire_and_forget_has_no_response_channel(self):
+        msg = MessageCreator.command_message(TOPIC, SIMPLE)
+        assert msg.response_topic is None
+        assert msg.correlation_data is None
+
+    def test_rejects_wildcard_topic(self):
+        with pytest.raises(ValueError):
+            MessageCreator.command_message("test/+/topic", SIMPLE)
+
+
+# ---------------------------------------------------------------------------
 # status_message
 # ---------------------------------------------------------------------------
 
@@ -132,6 +175,26 @@ class TestErrorResponseMessage:
         msg = MessageCreator.error_response_message(TOPIC, return_code=500)
         assert msg.user_properties is not None
         assert "DebugInfo" not in msg.user_properties
+
+    def test_content_type_defaults_to_json(self):
+        msg = MessageCreator.error_response_message(TOPIC, return_code=500)
+        assert msg.content_type == "application/json"
+
+    def test_non_json_content_type_sends_empty_body(self):
+        # "{}" is a JSON body; a protobuf consumer would fail to parse it, and an error
+        # carries no data anyway -- the return code is in the user properties.
+        msg = MessageCreator.error_response_message(
+            TOPIC, return_code=500, content_type="application/x-protobuf"
+        )
+        assert msg.content_type == "application/x-protobuf"
+        assert msg.payload == b""
+
+    def test_non_json_content_type_still_carries_return_code(self):
+        msg = MessageCreator.error_response_message(
+            TOPIC, return_code=404, content_type="application/x-protobuf"
+        )
+        assert msg.user_properties is not None
+        assert msg.user_properties["ReturnCode"] == "404"
 
 
 # ---------------------------------------------------------------------------
@@ -369,6 +432,32 @@ class TestBinarySignalMessage:
 
     def test_not_retained(self):
         msg = MessageCreator.binary_signal_message(TOPIC, BINARY_PAYLOAD, CONTENT_TYPE)
+        assert msg.retain is False
+
+
+# ---------------------------------------------------------------------------
+# binary_command_message
+# ---------------------------------------------------------------------------
+
+class TestBinaryCommandMessage:
+    def test_topic(self):
+        msg = MessageCreator.binary_command_message(TOPIC, BINARY_PAYLOAD, CONTENT_TYPE)
+        assert msg.topic == TOPIC
+
+    def test_payload_passes_through_unchanged(self):
+        msg = MessageCreator.binary_command_message(TOPIC, BINARY_PAYLOAD, CONTENT_TYPE)
+        assert msg.payload == BINARY_PAYLOAD
+
+    def test_content_type(self):
+        msg = MessageCreator.binary_command_message(TOPIC, BINARY_PAYLOAD, CONTENT_TYPE)
+        assert msg.content_type == CONTENT_TYPE
+
+    def test_qos_defaults_to_exactly_once(self):
+        msg = MessageCreator.binary_command_message(TOPIC, BINARY_PAYLOAD, CONTENT_TYPE)
+        assert msg.qos == 2
+
+    def test_not_retained(self):
+        msg = MessageCreator.binary_command_message(TOPIC, BINARY_PAYLOAD, CONTENT_TYPE)
         assert msg.retain is False
 
 

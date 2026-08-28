@@ -34,6 +34,33 @@ class MessageCreator:
         )
 
     @classmethod
+    def command_message(cls, topic: str, payload: BaseModel, qos: int = 2) -> Message:
+        return cls.binary_command_message(
+            topic,
+            payload.model_dump_json(by_alias=True).encode("utf-8"),
+            "application/json",
+            qos=qos,
+        )
+
+    @classmethod
+    def binary_command_message(
+        cls, topic: str, payload: bytes, content_type: str, qos: int = 2
+    ) -> Message:
+        """
+        A command is a signal in reverse: the client publishes it to the server and never
+        learns whether it was acted on.  There is therefore no response topic and no
+        correlation data on the message.
+        """
+        cls._validate_topic(topic)
+        return Message(
+            topic=topic,
+            payload=payload,
+            qos=qos,
+            retain=False,
+            content_type=content_type,
+        )
+
+    @classmethod
     def status_message(
         cls, topic: str, status_message: BaseModel, expiry_seconds: int
     ) -> Message:
@@ -65,9 +92,14 @@ class MessageCreator:
         return_code: Union[int, MethodReturnCode],
         correlation_id: Union[str, bytes, None] = None,
         debug_info: Optional[str] = None,
+        content_type: str = "application/json",
     ) -> Message:
         """
         This could be used for a response to a request, but where there was an error fulfilling the request.
+
+        An error carries no data -- the return code and any debug info travel in MQTT user
+        properties -- so the body is an empty JSON object for a JSON response and empty
+        bytes for any other content type, since a protobuf consumer would reject "{}".
         """
         cls._validate_topic(topic)
         rc = (
@@ -77,7 +109,7 @@ class MessageCreator:
         )
         msg_obj = Message(
             topic=topic,
-            payload=b"{}",
+            payload=b"{}" if content_type == "application/json" else b"",
             qos=1,
             retain=False,
             correlation_data=(
@@ -86,7 +118,7 @@ class MessageCreator:
                 else correlation_id
             ),
             user_properties={"ReturnCode": str(rc)},
-            content_type="application/json",
+            content_type=content_type,
         )
         if (
             debug_info is not None and msg_obj.user_properties is not None
