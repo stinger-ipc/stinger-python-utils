@@ -1,6 +1,6 @@
 from typing import Optional
 from enum import IntEnum
-from pyqttier.message import Message
+from pystingerconniface import Message
 
 
 class MethodReturnCode(IntEnum):

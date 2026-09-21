@@ -1,4 +1,4 @@
-from pyqttier.message import Message
+from pystingerconniface import Message
 from pydantic import BaseModel
 from typing import Union, Optional
 import uuid
@@ -211,7 +211,7 @@ class MessageCreator:
         cls,
         topic: str,
         property_obj: BaseModel,
-        version: str,
+        version: Optional[int],
         response_topic: str,
         correlation_id: Union[str, bytes, None] = None,
     ) -> Message:
@@ -233,13 +233,13 @@ class MessageCreator:
         topic: str,
         payload: bytes,
         content_type: str,
-        version: str,
+        version: Optional[int],
         response_topic: str,
         correlation_id: Union[str, bytes, None] = None,
     ) -> Message:
         cls._validate_topic(topic)
         cls._validate_topic(response_topic, "response_topic")
-        return Message(
+        msg = Message(
             topic=topic,
             payload=payload,
             qos=1,
@@ -251,15 +251,17 @@ class MessageCreator:
                 if isinstance(correlation_id, str)
                 else correlation_id
             ),
-            user_properties={"PropertyVersion": str(version)},
         )
+        if version is not None:
+            msg.user_properties = {"PropertyVersion": str(version)}
+        return msg
 
     @classmethod
     def property_response_message(
         cls,
         response_topic: str,
         property_obj: BaseModel,
-        version: str,
+        version: Optional[int],
         return_code: Union[int, MethodReturnCode],
         correlation_id: Union[str, bytes, None] = None,
         debug_info: Optional[str] = None,
@@ -283,7 +285,7 @@ class MessageCreator:
         response_topic: str,
         payload: bytes,
         content_type: str,
-        version: str,
+        version: Optional[int],
         return_code: Union[int, MethodReturnCode],
         correlation_id: Union[str, bytes, None] = None,
         debug_info: Optional[str] = None,
@@ -307,13 +309,13 @@ class MessageCreator:
             ),
             user_properties={
                 "ReturnCode": str(rc),
-                "PropertyVersion": str(version),
             },
         )
-        if (
-            debug_info is not None and msg_obj.user_properties is not None
-        ):  # user_properties should never be None here, but checking to satisfy type checker
-            msg_obj.user_properties["DebugInfo"] = debug_info
+        if msg_obj.user_properties is not None:  # user_properties should never be None here, but checking to satisfy type checker
+            if version is not None:
+                msg_obj.user_properties["PropertyVersion"] = str(version)
+            if debug_info is not None: 
+                msg_obj.user_properties["DebugInfo"] = debug_info
         return msg_obj
 
     @classmethod
