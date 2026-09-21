@@ -24,4 +24,5 @@ dev = [
     "black>=23.3.0",
     "mypy>=1.4.1",
     "pytest>=7.0.0; python_version >= '3.10'",
+    "pytest>=6.2.0,<7.0.0; python_version < '3.10'",
 ]
