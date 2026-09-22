@@ -38,6 +38,8 @@ Read the current version from `pyproject.toml`. Then ask the user:
 
 Apply the chosen version to the `version` field in `pyproject.toml`.
 
+After changing the version, run `uv sync` to update the `uv.lock` file before committing.
+
 ### 4. Confirm commit and push
 
 Ask the user:

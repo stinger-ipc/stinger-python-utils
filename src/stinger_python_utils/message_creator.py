@@ -246,6 +246,7 @@ class MessageCreator:
             retain=False,
             content_type=content_type,
             response_topic=response_topic,
+            message_expiry_interval=5,
             correlation_data=(
                 correlation_id.encode("utf-8")
                 if isinstance(correlation_id, str)
@@ -325,6 +326,7 @@ class MessageCreator:
         request_obj: BaseModel,
         response_topic: str,
         correlation_id: Union[str, bytes, None] = None,
+        expiry_seconds: Optional[int] = None,
     ) -> Message:
         return cls.binary_request_message(
             topic,
@@ -332,6 +334,7 @@ class MessageCreator:
             "application/json",
             response_topic,
             correlation_id,
+            expiry_seconds,
         )
 
     @classmethod
@@ -342,12 +345,13 @@ class MessageCreator:
         content_type: str,
         response_topic: str,
         correlation_id: Union[str, bytes, None] = None,
+        expiry_seconds: Optional[int] = None,
     ) -> Message:
         cls._validate_topic(topic)
         cls._validate_topic(response_topic, "response_topic")
         if correlation_id is None:
             correlation_id = str(uuid.uuid4())
-        return Message(
+        msg = Message(
             topic=topic,
             payload=payload,
             qos=1,
@@ -360,3 +364,6 @@ class MessageCreator:
                 else correlation_id
             ),
         )
+        if expiry_seconds is not None:
+            msg.message_expiry_interval = expiry_seconds
+        return msg
